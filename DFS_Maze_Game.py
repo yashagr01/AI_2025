@@ -37,7 +37,7 @@ def DFS(m):
 
 
 # -------- Main --------
-m = maze(6, 6)
+m = maze(10,20)
 m.CreateMaze()
 
 path = DFS(m)
