@@ -1,92 +1,108 @@
+import tkinter as tk
 import random
-import copy
+from tkinter import messagebox
 
-GOAL_STATE = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 0]  # 0 represents the empty space
-]
+GOAL_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 0]
 
-MOVES = {
-    'w': (-1, 0),  # up
-    's': (1, 0),   # down
-    'a': (0, -1),  # left
-    'd': (0, 1)    # right
-}
+class EightPuzzleGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("8 Puzzle Game")
+        self.root.resizable(False, False)
 
-def display_board(board):
-    print("\nCurrent Board:")
-    for row in board:
-        print(" ".join(str(x) if x != 0 else " " for x in row))
-    print()
+        self.tiles = []
+        self.buttons = []
+        self.moves = 0
 
-def find_zero(board):
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] == 0:
-                return i, j
+        self.create_widgets()
+        self.shuffle_board()
 
-def is_solved(board):
-    return board == GOAL_STATE
+    def create_widgets(self):
+        frame = tk.Frame(self.root, padx=10, pady=10)
+        frame.pack()
 
-def make_move(board, move):
-    x, y = find_zero(board)
-    dx, dy = MOVES[move]
-    nx, ny = x + dx, y + dy
+        for i in range(9):
+            btn = tk.Button(
+                frame,
+                text="",
+                font=("Arial", 20, "bold"),
+                width=4,
+                height=2,
+                command=lambda i=i: self.move_tile(i)
+            )
+            btn.grid(row=i // 3, column=i % 3, padx=5, pady=5)
+            self.buttons.append(btn)
 
-    if 0 <= nx < 3 and 0 <= ny < 3:
-        board[x][y], board[nx][ny] = board[nx][ny], board[x][y]
-        return True
-    return False
+        self.status = tk.Label(
+            self.root,
+            text="Moves: 0",
+            font=("Arial", 12)
+        )
+        self.status.pack(pady=5)
 
-def count_inversions(flat_board):
-    inv = 0
-    nums = [x for x in flat_board if x != 0]
-    for i in range(len(nums)):
-        for j in range(i + 1, len(nums)):
-            if nums[i] > nums[j]:
-                inv += 1
-    return inv
+        reset_btn = tk.Button(
+            self.root,
+            text="New Game",
+            font=("Arial", 11),
+            command=self.shuffle_board
+        )
+        reset_btn.pack(pady=5)
 
-def is_solvable(board):
-    flat = sum(board, [])
-    return count_inversions(flat) % 2 == 0
+    def shuffle_board(self):
+        nums = list(range(9))
+        while True:
+            random.shuffle(nums)
+            if self.is_solvable(nums) and nums != GOAL_STATE:
+                break
 
-def generate_board():
-    nums = list(range(9))
-    while True:
-        random.shuffle(nums)
-        board = [nums[i:i+3] for i in range(0, 9, 3)]
-        if is_solvable(board) and board != GOAL_STATE:
-            return board
+        self.tiles = nums
+        self.moves = 0
+        self.update_ui()
 
-def play_game():
-    board = generate_board()
-    moves_count = 0
-
-    print("8 Puzzle Game")
-    print("Use W/A/S/D to move tiles. Press Q to quit.")
-
-    while True:
-        display_board(board)
-
-        if is_solved(board):
-            print(f"🎉 Congratulations! You solved it in {moves_count} moves.")
-            break
-
-        move = input("Your move (W/A/S/D): ").lower()
-
-        if move == 'q':
-            print("Game exited.")
-            break
-
-        if move in MOVES:
-            if make_move(board, move):
-                moves_count += 1
+    def update_ui(self):
+        for i in range(9):
+            if self.tiles[i] == 0:
+                self.buttons[i].config(text="", state="disabled", bg="lightgray")
             else:
-                print("❌ Invalid move!")
-        else:
-            print("❌ Invalid input!")
+                self.buttons[i].config(
+                    text=str(self.tiles[i]),
+                    state="normal",
+                    bg="SystemButtonFace"
+                )
+
+        self.status.config(text=f"Moves: {self.moves}")
+
+    def move_tile(self, index):
+        zero_index = self.tiles.index(0)
+        if self.is_adjacent(index, zero_index):
+            self.tiles[zero_index], self.tiles[index] = \
+                self.tiles[index], self.tiles[zero_index]
+
+            self.moves += 1
+            self.update_ui()
+
+            if self.tiles == GOAL_STATE:
+                messagebox.showinfo(
+                    "Congratulations 🎉",
+                    f"You solved the puzzle in {self.moves} moves!"
+                )
+
+    def is_adjacent(self, i, j):
+        row1, col1 = divmod(i, 3)
+        row2, col2 = divmod(j, 3)
+        return abs(row1 - row2) + abs(col1 - col2) == 1
+
+    def is_solvable(self, board):
+        inv = 0
+        nums = [x for x in board if x != 0]
+        for i in range(len(nums)):
+            for j in range(i + 1, len(nums)):
+                if nums[i] > nums[j]:
+                    inv += 1
+        return inv % 2 == 0
+
 
 if __name__ == "__main__":
-    play_game()
+    root = tk.Tk()
+    EightPuzzleGUI(root)
+    root.mainloop()
